@@ -17,6 +17,8 @@ limitations under the License.
 #ifndef SHA204_Library_SWI_h
 #define SHA204_Library_SWI_h
 
+#include "SHA204.h"
+
 /* bitbang_config.h */
 
 #define PORT_ACCESS_TIME  		(630)	//! time it takes to toggle the pin at CPU clock of 16 MHz (ns)
@@ -39,13 +41,27 @@ limitations under the License.
 #define SHA204_SWI_FLAG_SLEEP   ((uint8_t) 0xCC) //!< flag requesting to go into Sleep mode
 
 /* from sha204_config.h */
-
-#define CPU_CLOCK_DEVIATION_POSITIVE   (1.01)
-#define CPU_CLOCK_DEVIATION_NEGATIVE   (0.99)
-#define SHA204_RETRY_COUNT           (1)
 #define SWI_RECEIVE_TIME_OUT      ((uint16_t) 163)  //! #START_PULSE_TIME_OUT in us instead of loop counts
 #define SWI_US_PER_BYTE           ((uint16_t) 313)  //! It takes 312.5 us to send a byte (9 single-wire bits / 230400 Baud * 8 flag bits).
 #define SHA204_SYNC_TIMEOUT       ((uint8_t) 85)//! delay before sending a transmit flag in the synchronization routine
-#define SHA204_RESPONSE_TIMEOUT   ((uint16_t) SWI_RECEIVE_TIME_OUT + SWI_US_PER_BYTE)  //! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
+
+class SHA204SWI : public SHA204 {
+private:
+	uint8_t device_pin;
+	volatile uint8_t *device_port_DDR, *device_port_OUT, *device_port_IN;
+	
+	void set_signal_pin(uint8_t is_high);
+	uint8_t receive_bytes(uint8_t count, uint8_t *buffer);
+	uint8_t send_bytes(uint8_t count, uint8_t *buffer);
+	uint8_t send_byte(uint8_t value);
+	uint8_t chip_wakeup();
+	uint8_t receive_response(uint8_t size, uint8_t *response);
+	uint8_t send_command(uint8_t count, uint8_t * command);
+
+public:
+	SHA204SWI(uint8_t pin);
+	uint8_t sleep();
+	uint8_t resync(uint8_t size, uint8_t *response);
+};
 
 #endif

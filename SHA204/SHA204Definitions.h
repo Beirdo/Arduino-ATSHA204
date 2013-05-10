@@ -262,4 +262,10 @@ limitations under the License.
 #define	ADDRESS_OTPMODE		18	// Sets the One-time-programmable mode
 #define	ADDRESS_SELECTOR	19	// Controls writability of Selector
 
+/* from sha204_config.h */
+
+#define CPU_CLOCK_DEVIATION_POSITIVE   (1.01)
+#define CPU_CLOCK_DEVIATION_NEGATIVE   (0.99)
+#define SHA204_RETRY_COUNT           (1)
+
 #endif

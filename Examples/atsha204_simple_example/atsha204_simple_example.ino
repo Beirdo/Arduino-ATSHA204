@@ -14,11 +14,12 @@
    The ATSHA204 can be powered between 3.3V and 5V.
 */
 #include <SHA204.h>
+#include <SHA204SWI.h>
 #include <SHA204Definitions.h>
 
 const int sha204Pin = 7;
 
-SHA204 sha204(sha204Pin);
+SHA204SWI sha204swi(sha204Pin);
 
 void setup()
 {
@@ -47,7 +48,7 @@ byte wakeupExample()
   uint8_t response[SHA204_RSP_SIZE_MIN];
   byte returnValue;
   
-  returnValue = sha204.wakeup(&response[0]);
+  returnValue = sha204swi.wakeup(&response[0]);
   for (int i=0; i<SHA204_RSP_SIZE_MIN; i++)
   {
     Serial.print(response[i], HEX);
@@ -63,7 +64,7 @@ byte serialNumberExample()
   uint8_t serialNumber[9];
   byte returnValue;
   
-  returnValue = sha204.serialNumber(serialNumber);
+  returnValue = sha204swi.serialNumber(serialNumber);
   for (int i=0; i<9; i++)
   {
     Serial.print(serialNumber[i], HEX);
@@ -86,7 +87,7 @@ byte macChallengeExample()
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
   };
 
-  uint8_t ret_code = sha204.execute(SHA204_MAC, 0, 0, MAC_CHALLENGE_SIZE, 
+  uint8_t ret_code = sha204swi.execute(SHA204_MAC, 0, 0, MAC_CHALLENGE_SIZE, 
     (uint8_t *) challenge, 0, NULL, 0, NULL, sizeof(command), &command[0], 
     sizeof(response), &response[0]);
 
