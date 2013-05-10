@@ -14,10 +14,11 @@
    The ATSHA204 can be powered between 3.3V and 5V.
 */
 #include <SHA204.h>
+#include <SHA204Definitions.h>
 
 const int sha204Pin = 7;
 
-atsha204Class sha204(sha204Pin);
+SHA204 sha204(sha204Pin);
 
 void setup()
 {

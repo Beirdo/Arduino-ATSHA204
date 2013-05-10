@@ -1,14 +1,31 @@
+/*
+Copyright 2013 Nusku Networks
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+
 #include "Arduino.h"
 #include "SHA204.h"
 #include "SHA204ReturnCodes.h"
+#include "SHA204Definitions.h"
+#include "SHA204SWI.h"
 
 
 // atsha204Class Constructor
 // Feed this function the Arduino-ized pin number you want to assign to the ATSHA204's SDA pin
 // This will find the DDRX, PORTX, and PINX registrs it'll need to point to to control that pin
 // As well as the bit value for each of those registers
-atsha204Class::atsha204Class(uint8_t pin)
-{	
+SHA204::SHA204(uint8_t pin) {
 	device_pin = digitalPinToBitMask(pin);	// Find the bit value of the pin
 	uint8_t port = digitalPinToPort(pin);	// temoporarily used to get the next three registers
 	
@@ -22,8 +39,7 @@ atsha204Class::atsha204Class(uint8_t pin)
 
 /* 	Puts a the ATSHA204's unique, 4-byte serial number in the response array 
 	returns an SHA204 Return code */
-uint8_t atsha204Class::getSerialNumber(uint8_t * response)
-{
+uint8_t SHA204::getSerialNumber(uint8_t * response) {
 	uint8_t readCommand[READ_COUNT];
 	uint8_t readResponse[READ_4_RSP_SIZE];
 	
@@ -52,8 +68,7 @@ uint8_t atsha204Class::getSerialNumber(uint8_t * response)
 
 /* SWI bit bang functions */
 
-void atsha204Class::swi_set_signal_pin(uint8_t is_high)
-{
+void SHA204::swi_set_signal_pin(uint8_t is_high) {
   *device_port_DDR |= device_pin;
 
   if (is_high)
@@ -62,8 +77,7 @@ void atsha204Class::swi_set_signal_pin(uint8_t is_high)
     *device_port_OUT &= ~device_pin;
 }
 
-uint8_t atsha204Class::swi_send_bytes(uint8_t count, uint8_t *buffer)
-{
+uint8_t SHA204::swi_send_bytes(uint8_t count, uint8_t *buffer) {
   uint8_t i, bit_mask;
 
   // Disable interrupts while sending.
@@ -105,13 +119,11 @@ uint8_t atsha204Class::swi_send_bytes(uint8_t count, uint8_t *buffer)
   return SWI_FUNCTION_RETCODE_SUCCESS;
 }
 
-uint8_t atsha204Class::swi_send_byte(uint8_t value)
-{
+uint8_t SHA204::swi_send_byte(uint8_t value) {
   return swi_send_bytes(1, &value);
 }
 
-uint8_t atsha204Class::swi_receive_bytes(uint8_t count, uint8_t *buffer) 
-{
+uint8_t SHA204::swi_receive_bytes(uint8_t count, uint8_t *buffer)  {
   uint8_t status = SWI_FUNCTION_RETCODE_SUCCESS;
   uint8_t i;
   uint8_t bit_mask;
@@ -216,8 +228,7 @@ uint8_t atsha204Class::swi_receive_bytes(uint8_t count, uint8_t *buffer)
 
 /* Physical functions */
 
-uint8_t atsha204Class::sha204p_wakeup()
-{
+uint8_t SHA204::sha204p_wakeup() {
   swi_set_signal_pin(0);
   delayMicroseconds(10*SHA204_WAKEUP_PULSE_WIDTH);
   swi_set_signal_pin(1);
@@ -226,19 +237,16 @@ uint8_t atsha204Class::sha204p_wakeup()
   return SHA204_SUCCESS;
 }
 
-uint8_t atsha204Class::sha204p_sleep()
-{
+uint8_t SHA204::sha204p_sleep() {
   return swi_send_byte(SHA204_SWI_FLAG_SLEEP);
 }
 
-uint8_t atsha204Class::sha204p_resync(uint8_t size, uint8_t *response)
-{
+uint8_t SHA204::sha204p_resync(uint8_t size, uint8_t *response) {
   delay(SHA204_SYNC_TIMEOUT);
   return sha204p_receive_response(size, response);
 }
 
-uint8_t atsha204Class::sha204p_receive_response(uint8_t size, uint8_t *response)
-{
+uint8_t SHA204::sha204p_receive_response(uint8_t size, uint8_t *response) {
   uint8_t count_byte;
   uint8_t i;
   uint8_t ret_code;
@@ -267,8 +275,7 @@ uint8_t atsha204Class::sha204p_receive_response(uint8_t size, uint8_t *response)
     return SHA204_RX_FAIL;
 }
 
-uint8_t atsha204Class::sha204p_send_command(uint8_t count, uint8_t * command)
-{
+uint8_t SHA204::sha204p_send_command(uint8_t count, uint8_t * command) {
   uint8_t ret_code = swi_send_byte(SHA204_SWI_FLAG_CMD);
   if (ret_code != SWI_FUNCTION_RETCODE_SUCCESS)
     return SHA204_COMM_FAIL;
@@ -278,8 +285,7 @@ uint8_t atsha204Class::sha204p_send_command(uint8_t count, uint8_t * command)
 
 /* Communication functions */
 
-uint8_t atsha204Class::sha204c_wakeup(uint8_t *response)
-{
+uint8_t SHA204::sha204c_wakeup(uint8_t *response) {
   uint8_t ret_code = sha204p_wakeup();
   if (ret_code != SHA204_SUCCESS)
     return ret_code;
@@ -305,8 +311,7 @@ uint8_t atsha204Class::sha204c_wakeup(uint8_t *response)
   return ret_code;
 }
 
-uint8_t atsha204Class::sha204c_resync(uint8_t size, uint8_t *response)
-{
+uint8_t SHA204::sha204c_resync(uint8_t size, uint8_t *response) {
   // Try to re-synchronize without sending a Wake token
   // (step 1 of the re-synchronization process).
   uint8_t ret_code = sha204p_resync(size, response);
@@ -325,8 +330,7 @@ uint8_t atsha204Class::sha204c_resync(uint8_t size, uint8_t *response)
   return (ret_code == SHA204_SUCCESS ? SHA204_RESYNC_WITH_WAKEUP : ret_code);
 }
 
-uint8_t atsha204Class::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer, uint8_t execution_delay, uint8_t execution_timeout)
-{
+uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer, uint8_t execution_delay, uint8_t execution_timeout) {
   uint8_t ret_code = SHA204_FUNC_FAIL;
   uint8_t ret_code_resync;
   uint8_t n_retries_send;
@@ -463,8 +467,7 @@ uint8_t atsha204Class::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_s
 
 /* Marshaling functions */
 
-uint8_t atsha204Class::sha204m_random(uint8_t * tx_buffer, uint8_t * rx_buffer, uint8_t mode)
-{
+uint8_t SHA204::sha204m_random(uint8_t * tx_buffer, uint8_t * rx_buffer, uint8_t mode) {
   if (!tx_buffer || !rx_buffer || (mode > RANDOM_NO_SEED_UPDATE))
     return SHA204_BAD_PARAM;
 
@@ -478,8 +481,7 @@ uint8_t atsha204Class::sha204m_random(uint8_t * tx_buffer, uint8_t * rx_buffer, 
   return sha204c_send_and_receive(&tx_buffer[0], RANDOM_RSP_SIZE, &rx_buffer[0], RANDOM_DELAY, RANDOM_EXEC_MAX - RANDOM_DELAY);
 }
 
-uint8_t atsha204Class::sha204m_dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer)
-{
+uint8_t SHA204::sha204m_dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer) {
   if (!tx_buffer || !rx_buffer)
     return SHA204_BAD_PARAM;
 
@@ -495,8 +497,7 @@ uint8_t atsha204Class::sha204m_dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer)
   DEVREV_DELAY, DEVREV_EXEC_MAX - DEVREV_DELAY);
 }
 
-uint8_t atsha204Class::sha204m_read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zone, uint16_t address)
-{
+uint8_t SHA204::sha204m_read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zone, uint16_t address) {
   uint8_t rx_size;
 
   if (!tx_buffer || !rx_buffer || ((zone & ~READ_ZONE_MASK) != 0)
@@ -531,10 +532,9 @@ uint8_t atsha204Class::sha204m_read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint
   return sha204c_send_and_receive(&tx_buffer[0], rx_size, &rx_buffer[0], READ_DELAY, READ_EXEC_MAX - READ_DELAY);
 }
 
-uint8_t atsha204Class::sha204m_execute(uint8_t op_code, uint8_t param1, uint16_t param2,
+uint8_t SHA204::sha204m_execute(uint8_t op_code, uint8_t param1, uint16_t param2,
 			uint8_t datalen1, uint8_t *data1, uint8_t datalen2, uint8_t *data2, uint8_t datalen3, uint8_t *data3,
-			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer)
-{
+			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer) {
 	uint8_t poll_delay, poll_timeout, response_size;
 	uint8_t *p_buffer;
 	uint8_t len;
@@ -663,10 +663,9 @@ uint8_t atsha204Class::sha204m_execute(uint8_t op_code, uint8_t param1, uint16_t
 				&rx_buffer[0],	poll_delay, poll_timeout);
 }
 
-uint8_t atsha204Class::sha204m_check_parameters(uint8_t op_code, uint8_t param1, uint16_t param2,
+uint8_t SHA204::sha204m_check_parameters(uint8_t op_code, uint8_t param1, uint16_t param2,
 			uint8_t datalen1, uint8_t *data1, uint8_t datalen2, uint8_t *data2, uint8_t datalen3, uint8_t *data3,
-			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer)
-{
+			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer) {
 #ifdef SHA204_CHECK_PARAMETERS
 
 	uint8_t len = datalen1 + datalen2 + datalen3 + SHA204_CMD_SIZE_MIN;
@@ -770,8 +769,7 @@ uint8_t atsha204Class::sha204m_check_parameters(uint8_t op_code, uint8_t param1,
 
 /* CRC Calculator and Checker */
 
-void atsha204Class::sha204c_calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc) 
-{
+void SHA204::sha204c_calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc)  {
   uint8_t counter;
   uint16_t crc_register = 0;
   uint16_t polynom = 0x8005;
@@ -796,8 +794,7 @@ void atsha204Class::sha204c_calculate_crc(uint8_t length, uint8_t *data, uint8_t
   crc[1] = (uint8_t) (crc_register >> 8);
 }
 
-uint8_t atsha204Class::sha204c_check_crc(uint8_t *response)
-{
+uint8_t SHA204::sha204c_check_crc(uint8_t *response) {
   uint8_t crc[SHA204_CRC_SIZE];
   uint8_t count = response[SHA204_BUFFER_POS_COUNT];
 
