@@ -10,3 +10,8 @@ Each ATSHA204 ships with a guaranteed unique 72-bit serial number. Using the cry
 
 Here's a link to the [datasheet](http://www.atmel.com/Images/doc8740.pdf).
 
+# Licensing
+All documentation and graphical contained on this website and within the sources unless otherwise noted is licensed under the 
+[Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/deed.en_US) license.
+
+Source code is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) unless otherwise specified.
