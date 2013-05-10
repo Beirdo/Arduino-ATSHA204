@@ -47,7 +47,7 @@ byte wakeupExample()
   uint8_t response[SHA204_RSP_SIZE_MIN];
   byte returnValue;
   
-  returnValue = sha204.sha204c_wakeup(&response[0]);
+  returnValue = sha204.wakeup(&response[0]);
   for (int i=0; i<SHA204_RSP_SIZE_MIN; i++)
   {
     Serial.print(response[i], HEX);
@@ -63,7 +63,7 @@ byte serialNumberExample()
   uint8_t serialNumber[9];
   byte returnValue;
   
-  returnValue = sha204.getSerialNumber(serialNumber);
+  returnValue = sha204.serialNumber(serialNumber);
   for (int i=0; i<9; i++)
   {
     Serial.print(serialNumber[i], HEX);
@@ -86,7 +86,7 @@ byte macChallengeExample()
     0x88, 0x99, 0xAA, 0xBB, 0xCC, 0xDD, 0xEE, 0xFF
   };
 
-  uint8_t ret_code = sha204.sha204m_execute(SHA204_MAC, 0, 0, MAC_CHALLENGE_SIZE, 
+  uint8_t ret_code = sha204.execute(SHA204_MAC, 0, 0, MAC_CHALLENGE_SIZE, 
     (uint8_t *) challenge, 0, NULL, 0, NULL, sizeof(command), &command[0], 
     sizeof(response), &response[0]);
 

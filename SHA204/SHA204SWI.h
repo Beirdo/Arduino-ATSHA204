@@ -38,4 +38,14 @@ limitations under the License.
 #define SHA204_SWI_FLAG_IDLE    ((uint8_t) 0xBB) //!< flag requesting to go into Idle mode
 #define SHA204_SWI_FLAG_SLEEP   ((uint8_t) 0xCC) //!< flag requesting to go into Sleep mode
 
+/* from sha204_config.h */
+
+#define CPU_CLOCK_DEVIATION_POSITIVE   (1.01)
+#define CPU_CLOCK_DEVIATION_NEGATIVE   (0.99)
+#define SHA204_RETRY_COUNT           (1)
+#define SWI_RECEIVE_TIME_OUT      ((uint16_t) 163)  //! #START_PULSE_TIME_OUT in us instead of loop counts
+#define SWI_US_PER_BYTE           ((uint16_t) 313)  //! It takes 312.5 us to send a byte (9 single-wire bits / 230400 Baud * 8 flag bits).
+#define SHA204_SYNC_TIMEOUT       ((uint8_t) 85)//! delay before sending a transmit flag in the synchronization routine
+#define SHA204_RESPONSE_TIMEOUT   ((uint16_t) SWI_RECEIVE_TIME_OUT + SWI_US_PER_BYTE)  //! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
+
 #endif

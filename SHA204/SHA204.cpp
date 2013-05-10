@@ -39,26 +39,26 @@ SHA204::SHA204(uint8_t pin) {
 
 /* 	Puts a the ATSHA204's unique, 4-byte serial number in the response array 
 	returns an SHA204 Return code */
-uint8_t SHA204::getSerialNumber(uint8_t * response) {
+uint8_t SHA204::serialNumber(uint8_t * response) {
 	uint8_t readCommand[READ_COUNT];
 	uint8_t readResponse[READ_4_RSP_SIZE];
 	
 	/* read from bytes 0->3 of config zone */
-	uint8_t returnCode = sha204m_read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN03);
+	uint8_t returnCode = read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN03);
 	if (!returnCode)	// should return 0 if successful
 	{
 		for (int i=0; i<4; i++)	// store bytes 0-3 into respones array
 			response[i] = readResponse[SHA204_BUFFER_POS_DATA+i];
 			
 		/* read from bytes 8->11 of config zone */
-		returnCode = sha204m_read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN47);
+		returnCode = read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN47);
 		
 		for (int i=4; i<8; i++)	// store bytes 4-7 of SN into response array
 			response[i] = readResponse[SHA204_BUFFER_POS_DATA+(i-4)];
 		
 		if (!returnCode)
 		{	/* Finally if last two reads were successful, read byte 8 of the SN */
-			returnCode = sha204m_read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN8);
+			returnCode = read(readCommand, readResponse, SHA204_ZONE_CONFIG, ADDRESS_SN8);
 			response[8] = readResponse[SHA204_BUFFER_POS_DATA];	// Byte 8 of SN should always be 0xEE
 		}
 	}
@@ -228,7 +228,7 @@ uint8_t SHA204::swi_receive_bytes(uint8_t count, uint8_t *buffer)  {
 
 /* Physical functions */
 
-uint8_t SHA204::sha204p_wakeup() {
+uint8_t SHA204::wakeup() {
   swi_set_signal_pin(0);
   delayMicroseconds(10*SHA204_WAKEUP_PULSE_WIDTH);
   swi_set_signal_pin(1);
@@ -237,16 +237,31 @@ uint8_t SHA204::sha204p_wakeup() {
   return SHA204_SUCCESS;
 }
 
-uint8_t SHA204::sha204p_sleep() {
+uint8_t SHA204::sleep() {
   return swi_send_byte(SHA204_SWI_FLAG_SLEEP);
 }
 
-uint8_t SHA204::sha204p_resync(uint8_t size, uint8_t *response) {
+uint8_t SHA204::resync(uint8_t size, uint8_t *response) {
+  // Try to re-synchronize without sending a Wake token
+  // (step 1 of the re-synchronization process).
   delay(SHA204_SYNC_TIMEOUT);
-  return sha204p_receive_response(size, response);
+  uint8_t ret_code = receive_response(size, response);
+  if (ret_code == SHA204_SUCCESS)
+    return ret_code;
+
+  // We lost communication. Send a Wake pulse and try
+  // to receive a response (steps 2 and 3 of the
+  // re-synchronization process).
+  (void) sleep();
+  ret_code = wakeup(response);
+
+  // Translate a return value of success into one
+  // that indicates that the device had to be woken up
+  // and might have lost its TempKey.
+  return (ret_code == SHA204_SUCCESS ? SHA204_RESYNC_WITH_WAKEUP : ret_code);
 }
 
-uint8_t SHA204::sha204p_receive_response(uint8_t size, uint8_t *response) {
+uint8_t SHA204::receive_response(uint8_t size, uint8_t *response) {
   uint8_t count_byte;
   uint8_t i;
   uint8_t ret_code;
@@ -275,7 +290,7 @@ uint8_t SHA204::sha204p_receive_response(uint8_t size, uint8_t *response) {
     return SHA204_RX_FAIL;
 }
 
-uint8_t SHA204::sha204p_send_command(uint8_t count, uint8_t * command) {
+uint8_t SHA204::send_command(uint8_t count, uint8_t * command) {
   uint8_t ret_code = swi_send_byte(SHA204_SWI_FLAG_CMD);
   if (ret_code != SWI_FUNCTION_RETCODE_SUCCESS)
     return SHA204_COMM_FAIL;
@@ -285,12 +300,12 @@ uint8_t SHA204::sha204p_send_command(uint8_t count, uint8_t * command) {
 
 /* Communication functions */
 
-uint8_t SHA204::sha204c_wakeup(uint8_t *response) {
-  uint8_t ret_code = sha204p_wakeup();
+uint8_t SHA204::wakeup(uint8_t *response) {
+  uint8_t ret_code = wakeup();
   if (ret_code != SHA204_SUCCESS)
     return ret_code;
 
-  ret_code = sha204p_receive_response(SHA204_RSP_SIZE_MIN, response);
+  ret_code = receive_response(SHA204_RSP_SIZE_MIN, response);
   if (ret_code != SHA204_SUCCESS)
     return ret_code;
 
@@ -311,26 +326,7 @@ uint8_t SHA204::sha204c_wakeup(uint8_t *response) {
   return ret_code;
 }
 
-uint8_t SHA204::sha204c_resync(uint8_t size, uint8_t *response) {
-  // Try to re-synchronize without sending a Wake token
-  // (step 1 of the re-synchronization process).
-  uint8_t ret_code = sha204p_resync(size, response);
-  if (ret_code == SHA204_SUCCESS)
-    return ret_code;
-
-  // We lost communication. Send a Wake pulse and try
-  // to receive a response (steps 2 and 3 of the
-  // re-synchronization process).
-  (void) sha204p_sleep();
-  ret_code = sha204c_wakeup(response);
-
-  // Translate a return value of success into one
-  // that indicates that the device had to be woken up
-  // and might have lost its TempKey.
-  return (ret_code == SHA204_SUCCESS ? SHA204_RESYNC_WITH_WAKEUP : ret_code);
-}
-
-uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer, uint8_t execution_delay, uint8_t execution_timeout) {
+uint8_t SHA204::send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer, uint8_t execution_delay, uint8_t execution_timeout) {
   uint8_t ret_code = SHA204_FUNC_FAIL;
   uint8_t ret_code_resync;
   uint8_t n_retries_send;
@@ -343,7 +339,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
   volatile uint16_t timeout_countdown;
 
   // Append CRC.
-  sha204c_calculate_crc(count_minus_crc, tx_buffer, tx_buffer + count_minus_crc);
+  calculate_crc(count_minus_crc, tx_buffer, tx_buffer + count_minus_crc);
 
   // Retry loop for sending a command and receiving a response.
   n_retries_send = SHA204_RETRY_COUNT + 1;
@@ -351,10 +347,10 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
   while ((n_retries_send-- > 0) && (ret_code != SHA204_SUCCESS)) 
   {
     // Send command.
-    ret_code = sha204p_send_command(count, tx_buffer);
+    ret_code = send_command(count, tx_buffer);
     if (ret_code != SHA204_SUCCESS) 
     {
-      if (sha204c_resync(rx_size, rx_buffer) == SHA204_RX_NO_RESPONSE)
+      if (resync(rx_size, rx_buffer) == SHA204_RX_NO_RESPONSE)
         return ret_code; // The device seems to be dead in the water.
       else
         continue;
@@ -375,7 +371,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
       timeout_countdown = execution_timeout_us;
       do 
       {
-        ret_code = sha204p_receive_response(rx_size, rx_buffer);
+        ret_code = receive_response(rx_size, rx_buffer);
         timeout_countdown -= SHA204_RESPONSE_TIMEOUT;
       } 
       while ((timeout_countdown > SHA204_RESPONSE_TIMEOUT) && (ret_code == SHA204_RX_NO_RESPONSE));
@@ -383,7 +379,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
       if (ret_code == SHA204_RX_NO_RESPONSE) 
       {
         // We did not receive a response. Re-synchronize and send command again.
-        if (sha204c_resync(rx_size, rx_buffer) == SHA204_RX_NO_RESPONSE)
+        if (resync(rx_size, rx_buffer) == SHA204_RX_NO_RESPONSE)
           // The device seems to be dead in the water.
           return ret_code;
         else
@@ -394,7 +390,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
       if (ret_code == SHA204_INVALID_SIZE)
       {
         // We see 0xFF for the count when communication got out of sync.
-        ret_code_resync = sha204c_resync(rx_size, rx_buffer);
+        ret_code_resync = resync(rx_size, rx_buffer);
         if (ret_code_resync == SHA204_SUCCESS)
           // We did not have to wake up the device. Try receiving response again.
           continue;
@@ -409,7 +405,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
 
       // We received a response of valid size.
       // Check the consistency of the response.
-      ret_code = sha204c_check_crc(rx_buffer);
+      ret_code = check_crc(rx_buffer);
       if (ret_code == SHA204_SUCCESS) 
       {
         // Received valid response.
@@ -444,7 +440,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
       else 
       {
         // Received response with incorrect CRC.
-        ret_code_resync = sha204c_resync(rx_size, rx_buffer);
+        ret_code_resync = resync(rx_size, rx_buffer);
         if (ret_code_resync == SHA204_SUCCESS)
           // We did not have to wake up the device. Try receiving response again.
           continue;
@@ -467,7 +463,7 @@ uint8_t SHA204::sha204c_send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, ui
 
 /* Marshaling functions */
 
-uint8_t SHA204::sha204m_random(uint8_t * tx_buffer, uint8_t * rx_buffer, uint8_t mode) {
+uint8_t SHA204::random(uint8_t * tx_buffer, uint8_t * rx_buffer, uint8_t mode) {
   if (!tx_buffer || !rx_buffer || (mode > RANDOM_NO_SEED_UPDATE))
     return SHA204_BAD_PARAM;
 
@@ -478,10 +474,10 @@ uint8_t SHA204::sha204m_random(uint8_t * tx_buffer, uint8_t * rx_buffer, uint8_t
   tx_buffer[RANDOM_PARAM2_IDX] =
     tx_buffer[RANDOM_PARAM2_IDX + 1] = 0;
 
-  return sha204c_send_and_receive(&tx_buffer[0], RANDOM_RSP_SIZE, &rx_buffer[0], RANDOM_DELAY, RANDOM_EXEC_MAX - RANDOM_DELAY);
+  return send_and_receive(&tx_buffer[0], RANDOM_RSP_SIZE, &rx_buffer[0], RANDOM_DELAY, RANDOM_EXEC_MAX - RANDOM_DELAY);
 }
 
-uint8_t SHA204::sha204m_dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer) {
+uint8_t SHA204::dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer) {
   if (!tx_buffer || !rx_buffer)
     return SHA204_BAD_PARAM;
 
@@ -493,11 +489,11 @@ uint8_t SHA204::sha204m_dev_rev(uint8_t *tx_buffer, uint8_t *rx_buffer) {
     tx_buffer[DEVREV_PARAM2_IDX] =
     tx_buffer[DEVREV_PARAM2_IDX + 1] = 0;
 
-  return sha204c_send_and_receive(&tx_buffer[0], DEVREV_RSP_SIZE, &rx_buffer[0],
+  return send_and_receive(&tx_buffer[0], DEVREV_RSP_SIZE, &rx_buffer[0],
   DEVREV_DELAY, DEVREV_EXEC_MAX - DEVREV_DELAY);
 }
 
-uint8_t SHA204::sha204m_read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zone, uint16_t address) {
+uint8_t SHA204::read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zone, uint16_t address) {
   uint8_t rx_size;
 
   if (!tx_buffer || !rx_buffer || ((zone & ~READ_ZONE_MASK) != 0)
@@ -529,17 +525,17 @@ uint8_t SHA204::sha204m_read(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zon
 
   rx_size = (zone & SHA204_ZONE_COUNT_FLAG) ? READ_32_RSP_SIZE : READ_4_RSP_SIZE;
 
-  return sha204c_send_and_receive(&tx_buffer[0], rx_size, &rx_buffer[0], READ_DELAY, READ_EXEC_MAX - READ_DELAY);
+  return send_and_receive(&tx_buffer[0], rx_size, &rx_buffer[0], READ_DELAY, READ_EXEC_MAX - READ_DELAY);
 }
 
-uint8_t SHA204::sha204m_execute(uint8_t op_code, uint8_t param1, uint16_t param2,
+uint8_t SHA204::execute(uint8_t op_code, uint8_t param1, uint16_t param2,
 			uint8_t datalen1, uint8_t *data1, uint8_t datalen2, uint8_t *data2, uint8_t datalen3, uint8_t *data3,
 			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer) {
 	uint8_t poll_delay, poll_timeout, response_size;
 	uint8_t *p_buffer;
 	uint8_t len;
 
-	uint8_t ret_code = sha204m_check_parameters(op_code, param1, param2,
+	uint8_t ret_code = check_parameters(op_code, param1, param2,
 				datalen1, data1, datalen2, data2, datalen3, data3,
 				tx_size, tx_buffer, rx_size, rx_buffer);
 	if (ret_code != SHA204_SUCCESS)
@@ -656,14 +652,14 @@ uint8_t SHA204::sha204m_execute(uint8_t op_code, uint8_t param1, uint16_t param2
 		p_buffer += datalen3;
 	}
 
-	sha204c_calculate_crc(len - SHA204_CRC_SIZE, tx_buffer, p_buffer);
+	calculate_crc(len - SHA204_CRC_SIZE, tx_buffer, p_buffer);
 
 	// Send command and receive response.
-	return sha204c_send_and_receive(&tx_buffer[0], response_size,
+	return send_and_receive(&tx_buffer[0], response_size,
 				&rx_buffer[0],	poll_delay, poll_timeout);
 }
 
-uint8_t SHA204::sha204m_check_parameters(uint8_t op_code, uint8_t param1, uint16_t param2,
+uint8_t SHA204::check_parameters(uint8_t op_code, uint8_t param1, uint16_t param2,
 			uint8_t datalen1, uint8_t *data1, uint8_t datalen2, uint8_t *data2, uint8_t datalen3, uint8_t *data3,
 			uint8_t tx_size, uint8_t *tx_buffer, uint8_t rx_size, uint8_t *rx_buffer) {
 #ifdef SHA204_CHECK_PARAMETERS
@@ -769,7 +765,7 @@ uint8_t SHA204::sha204m_check_parameters(uint8_t op_code, uint8_t param1, uint16
 
 /* CRC Calculator and Checker */
 
-void SHA204::sha204c_calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc)  {
+void SHA204::calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc)  {
   uint8_t counter;
   uint16_t crc_register = 0;
   uint16_t polynom = 0x8005;
@@ -794,12 +790,12 @@ void SHA204::sha204c_calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc) 
   crc[1] = (uint8_t) (crc_register >> 8);
 }
 
-uint8_t SHA204::sha204c_check_crc(uint8_t *response) {
+uint8_t SHA204::check_crc(uint8_t *response) {
   uint8_t crc[SHA204_CRC_SIZE];
   uint8_t count = response[SHA204_BUFFER_POS_COUNT];
 
   count -= SHA204_CRC_SIZE;
-  sha204c_calculate_crc(count, response, crc);
+  calculate_crc(count, response, crc);
 
   return (crc[0] == response[count] && crc[1] == response[count + 1])
     ? SHA204_SUCCESS : SHA204_BAD_CRC;
