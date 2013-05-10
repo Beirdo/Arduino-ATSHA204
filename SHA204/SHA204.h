@@ -14,25 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-//FIXME: Update the following block to be built into the classes somehow
-// IMPORTANT: The following line needs to match the type of connection you're using
-#define SHA204_SWI_BITBANG
-
-#ifdef SHA204_SWI_BITBANG
-#ifndef SHA204_RESPONSE_TIMEOUT
-#include "SHA204SWI.h" // Make sure to include the SWI_* stuff for this definition
-//! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
-#define SHA204_RESPONSE_TIMEOUT   ((uint16_t) SWI_RECEIVE_TIME_OUT + SWI_US_PER_BYTE)  //! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
-#endif
-#endif
-
-#ifdef SHA204_I2C
-#ifndef SHA204_RESPONSE_TIMEOUT
-#define SHA204_RESPONSE_TIMEOUT     ((uint16_t) 37)
-#endif
-
-#endif
-
 #include "Arduino.h"
 
 #ifndef SHA204_Library_h
@@ -40,6 +21,7 @@ limitations under the License.
 
 class SHA204 {
 private:
+	virtual uint16_t SHA204_RESPONSE_TIMEOUT() = 0;
 	void calculate_crc(uint8_t length, uint8_t *data, uint8_t *crc);
 	uint8_t check_crc(uint8_t *response);
 	virtual uint8_t receive_bytes(uint8_t count, uint8_t *buffer) = 0;

@@ -85,7 +85,7 @@ uint8_t SHA204::send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *r
   uint8_t status_byte;
   uint8_t count = tx_buffer[SHA204_BUFFER_POS_COUNT];
   uint8_t count_minus_crc = count - SHA204_CRC_SIZE;
-  uint16_t execution_timeout_us = (uint16_t) (execution_timeout * 1000) + SHA204_RESPONSE_TIMEOUT;
+  uint16_t execution_timeout_us = (uint16_t) (execution_timeout * 1000) + SHA204_RESPONSE_TIMEOUT();
   volatile uint16_t timeout_countdown;
 
   // Append CRC.
@@ -122,9 +122,9 @@ uint8_t SHA204::send_and_receive(uint8_t *tx_buffer, uint8_t rx_size, uint8_t *r
       do 
       {
         ret_code = receive_response(rx_size, rx_buffer);
-        timeout_countdown -= SHA204_RESPONSE_TIMEOUT;
+        timeout_countdown -= SHA204_RESPONSE_TIMEOUT();
       } 
-      while ((timeout_countdown > SHA204_RESPONSE_TIMEOUT) && (ret_code == SHA204_RX_NO_RESPONSE));
+      while ((timeout_countdown > SHA204_RESPONSE_TIMEOUT()) && (ret_code == SHA204_RX_NO_RESPONSE));
 
       if (ret_code == SHA204_RX_NO_RESPONSE) 
       {

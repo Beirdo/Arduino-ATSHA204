@@ -20,6 +20,9 @@ limitations under the License.
 #include "SHA204Definitions.h"
 #include "SHA204SWI.h"
 
+uint16_t SHA204SWI::SHA204_RESPONSE_TIMEOUT() {
+  return SHA204_RESPONSE_TIMEOUT_VALUE;
+}
 
 // atsha204Class Constructor
 // Feed this function the Arduino-ized pin number you want to assign to the ATSHA204's SDA pin

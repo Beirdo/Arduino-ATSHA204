@@ -1,18 +1,19 @@
-/* ATSHA204 Library Simple Example
-   by: Jim Lindblom
-   SparkFun Electronics
-   date: November 8, 2012
-   
-   This code shows how to wake up and verify that an SHA204 is
-   connected and operational. And how to obtain an SHA204's unique serial
-   number, and send it a MAC challenge.
-   
-   The ATSHA204's SDA pin can be connected to any of the Arduino's digital pins.
-   When constructing your atsha204Class, pass the constructor the pin you want to use.
-   In this example we'll attach SDA to pin 7.
-   
-   The ATSHA204 can be powered between 3.3V and 5V.
+/*
+Copyright 2013 Nusku Networks
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
 */
+
 #include <SHA204.h>
 #include <SHA204SWI.h>
 #include <SHA204Definitions.h>
@@ -100,6 +101,3 @@ byte macChallengeExample()
   
   return ret_code;
 }
-
-
-

@@ -47,9 +47,12 @@ limitations under the License.
 
 class SHA204SWI : public SHA204 {
 private:
+	const static uint16_t SHA204_RESPONSE_TIMEOUT_VALUE = ((uint16_t) SWI_RECEIVE_TIME_OUT + SWI_US_PER_BYTE);  //! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
+
 	uint8_t device_pin;
 	volatile uint8_t *device_port_DDR, *device_port_OUT, *device_port_IN;
 	
+	uint16_t SHA204_RESPONSE_TIMEOUT();
 	void set_signal_pin(uint8_t is_high);
 	uint8_t receive_bytes(uint8_t count, uint8_t *buffer);
 	uint8_t send_bytes(uint8_t count, uint8_t *buffer);
