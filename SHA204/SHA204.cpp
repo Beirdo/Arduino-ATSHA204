@@ -550,3 +550,238 @@ uint8_t SHA204::check_crc(uint8_t *response) {
   return (crc[0] == response[count] && crc[1] == response[count + 1])
     ? SHA204_SUCCESS : SHA204_BAD_CRC;
 }
+
+uint8_t SHA204::check_mac(uint8_t *tx_buffer, uint8_t *rx_buffer,
+      uint8_t mode, uint8_t key_id, uint8_t *client_challenge, uint8_t *client_response, uint8_t *other_data) {
+  if (
+      // no null pointers allowed
+      !tx_buffer || !rx_buffer || !client_response || !other_data
+      // No reserved bits should be set.
+      || (mode | CHECKMAC_MODE_MASK) != CHECKMAC_MODE_MASK
+      // key_id > 15 not allowed
+      || key_id > SHA204_KEY_ID_MAX
+    )
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = CHECKMAC_COUNT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_CHECKMAC;
+  tx_buffer[CHECKMAC_MODE_IDX] = mode & CHECKMAC_MODE_MASK;
+  tx_buffer[CHECKMAC_KEYID_IDX]= key_id;
+  tx_buffer[CHECKMAC_KEYID_IDX + 1] = 0;
+  if (client_challenge == NULL)
+    memset(&tx_buffer[CHECKMAC_CLIENT_CHALLENGE_IDX], 0, CHECKMAC_CLIENT_CHALLENGE_SIZE);
+  else
+    memcpy(&tx_buffer[CHECKMAC_CLIENT_CHALLENGE_IDX], client_challenge, CHECKMAC_CLIENT_CHALLENGE_SIZE);
+
+  memcpy(&tx_buffer[CHECKMAC_CLIENT_RESPONSE_IDX], client_response, CHECKMAC_CLIENT_RESPONSE_SIZE);
+  memcpy(&tx_buffer[CHECKMAC_DATA_IDX], other_data, CHECKMAC_OTHER_DATA_SIZE);
+
+  return send_and_receive(&tx_buffer[0], CHECKMAC_RSP_SIZE, &rx_buffer[0],
+        CHECKMAC_DELAY, CHECKMAC_EXEC_MAX - CHECKMAC_DELAY);
+}
+
+uint8_t SHA204::derive_key(uint8_t *tx_buffer, uint8_t *rx_buffer,
+      uint8_t random, uint8_t target_key, uint8_t *mac) {
+  if (!tx_buffer || !rx_buffer || ((random & ~DERIVE_KEY_RANDOM_FLAG) != 0)
+         || (target_key > SHA204_KEY_ID_MAX))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_DERIVE_KEY;
+  tx_buffer[DERIVE_KEY_RANDOM_IDX] = random;
+  tx_buffer[DERIVE_KEY_TARGETKEY_IDX] = target_key;
+  tx_buffer[DERIVE_KEY_TARGETKEY_IDX + 1] = 0;
+  if (mac != NULL)
+  {
+    memcpy(&tx_buffer[DERIVE_KEY_MAC_IDX], mac, DERIVE_KEY_MAC_SIZE);
+    tx_buffer[SHA204_COUNT_IDX] = DERIVE_KEY_COUNT_LARGE;
+  }
+  else
+    tx_buffer[SHA204_COUNT_IDX] = DERIVE_KEY_COUNT_SMALL;
+
+  return send_and_receive(&tx_buffer[0], DERIVE_KEY_RSP_SIZE, &rx_buffer[0],
+        DERIVE_KEY_DELAY, DERIVE_KEY_EXEC_MAX - DERIVE_KEY_DELAY);
+}
+
+uint8_t SHA204::gen_dig(uint8_t *tx_buffer, uint8_t *rx_buffer,
+      uint8_t zone, uint8_t key_id, uint8_t *other_data) {
+  if (!tx_buffer || !rx_buffer || (zone > GENDIG_ZONE_DATA))
+    return SHA204_BAD_PARAM;
+
+  if (((zone == GENDIG_ZONE_OTP) && (key_id > SHA204_OTP_BLOCK_MAX))
+        || ((zone == GENDIG_ZONE_DATA) && (key_id > SHA204_KEY_ID_MAX)))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_GENDIG;
+  tx_buffer[GENDIG_ZONE_IDX] = zone;
+  tx_buffer[GENDIG_KEYID_IDX] = key_id;
+  tx_buffer[GENDIG_KEYID_IDX + 1] = 0;
+  if (other_data != NULL)
+  {
+    memcpy(&tx_buffer[GENDIG_DATA_IDX], other_data, GENDIG_OTHER_DATA_SIZE);
+    tx_buffer[SHA204_COUNT_IDX] = GENDIG_COUNT_DATA;
+  }
+  else
+    tx_buffer[SHA204_COUNT_IDX] = GENDIG_COUNT;
+
+  return send_and_receive(&tx_buffer[0], GENDIG_RSP_SIZE, &rx_buffer[0],
+        GENDIG_DELAY, GENDIG_EXEC_MAX - GENDIG_DELAY);
+
+}
+
+uint8_t SHA204::hmac(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t mode, uint16_t key_id) {
+  if (!tx_buffer || !rx_buffer || ((mode & ~HMAC_MODE_MASK) != 0))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = HMAC_COUNT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_HMAC;
+  tx_buffer[HMAC_MODE_IDX] = mode;
+
+  // Although valid key identifiers are only
+  // from 0 to 15, all 16 bits are used in the HMAC message.
+  tx_buffer[HMAC_KEYID_IDX] = key_id & 0xFF;
+  tx_buffer[HMAC_KEYID_IDX + 1] = key_id >> 8;
+
+  return send_and_receive(&tx_buffer[0], HMAC_RSP_SIZE, &rx_buffer[0],
+        HMAC_DELAY, HMAC_EXEC_MAX - HMAC_DELAY);
+}
+
+uint8_t SHA204::lock(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t zone, uint16_t summary) {
+  if (!tx_buffer || !rx_buffer || ((zone & ~LOCK_ZONE_MASK) != 0)
+        || ((zone & LOCK_ZONE_NO_CRC) && (summary != 0)))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = LOCK_COUNT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_LOCK;
+  tx_buffer[LOCK_ZONE_IDX] = zone & LOCK_ZONE_MASK;
+  tx_buffer[LOCK_SUMMARY_IDX]= summary & 0xFF;
+  tx_buffer[LOCK_SUMMARY_IDX + 1]= summary >> 8;
+  return send_and_receive(&tx_buffer[0], LOCK_RSP_SIZE, &rx_buffer[0],
+        LOCK_DELAY, LOCK_EXEC_MAX - LOCK_DELAY);
+}
+
+uint8_t SHA204::mac(uint8_t *tx_buffer, uint8_t *rx_buffer,
+      uint8_t mode, uint16_t key_id, uint8_t *challenge) {
+  if (!tx_buffer || !rx_buffer || ((mode & ~MAC_MODE_MASK) != 0)
+        || (((mode & MAC_MODE_BLOCK2_TEMPKEY) == 0) && !challenge))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = MAC_COUNT_SHORT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_MAC;
+  tx_buffer[MAC_MODE_IDX] = mode;
+  tx_buffer[MAC_KEYID_IDX] = key_id & 0xFF;
+  tx_buffer[MAC_KEYID_IDX + 1] = key_id >> 8;
+  if ((mode & MAC_MODE_BLOCK2_TEMPKEY) == 0)
+  {
+    memcpy(&tx_buffer[MAC_CHALLENGE_IDX], challenge, MAC_CHALLENGE_SIZE);
+    tx_buffer[SHA204_COUNT_IDX] = MAC_COUNT_LONG;
+  }
+
+  return send_and_receive(&tx_buffer[0], MAC_RSP_SIZE, &rx_buffer[0],
+        MAC_DELAY, MAC_EXEC_MAX - MAC_DELAY);
+}
+
+uint8_t SHA204::nonce(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t mode, uint8_t *numin) {
+  uint8_t rx_size;
+
+  if (!tx_buffer || !rx_buffer || !numin
+        || (mode > NONCE_MODE_PASSTHROUGH) || (mode == NONCE_MODE_INVALID))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_NONCE;
+  tx_buffer[NONCE_MODE_IDX] = mode;
+
+  // 2. parameter is 0.
+  tx_buffer[NONCE_PARAM2_IDX] =
+  tx_buffer[NONCE_PARAM2_IDX + 1] = 0;
+
+  if (mode != NONCE_MODE_PASSTHROUGH)
+  {
+    memcpy(&tx_buffer[NONCE_INPUT_IDX], numin, NONCE_NUMIN_SIZE);
+    tx_buffer[SHA204_COUNT_IDX] = NONCE_COUNT_SHORT;
+    rx_size = NONCE_RSP_SIZE_LONG;
+  }
+  else
+  {
+    memcpy(&tx_buffer[NONCE_INPUT_IDX], numin, NONCE_NUMIN_SIZE_PASSTHROUGH);
+    tx_buffer[SHA204_COUNT_IDX] = NONCE_COUNT_LONG;
+    rx_size = NONCE_RSP_SIZE_SHORT;
+  }
+
+  return send_and_receive(&tx_buffer[0], rx_size, &rx_buffer[0],
+        NONCE_DELAY, NONCE_EXEC_MAX - NONCE_DELAY);
+}
+
+uint8_t SHA204::pause(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t selector) {
+  if (!tx_buffer || !rx_buffer)
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = PAUSE_COUNT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_PAUSE;
+  tx_buffer[PAUSE_SELECT_IDX] = selector;
+
+  // 2. parameter is 0.
+  tx_buffer[PAUSE_PARAM2_IDX] =
+  tx_buffer[PAUSE_PARAM2_IDX + 1] = 0;
+
+  return send_and_receive(&tx_buffer[0], PAUSE_RSP_SIZE, &rx_buffer[0],
+        PAUSE_DELAY, PAUSE_EXEC_MAX - PAUSE_DELAY);
+}
+
+uint8_t SHA204::update_extra(uint8_t *tx_buffer, uint8_t *rx_buffer, uint8_t mode, uint8_t new_value) {
+  if (!tx_buffer || !rx_buffer || (mode > UPDATE_CONFIG_BYTE_86))
+    return SHA204_BAD_PARAM;
+
+  tx_buffer[SHA204_COUNT_IDX] = UPDATE_COUNT;
+  tx_buffer[SHA204_OPCODE_IDX] = SHA204_UPDATE_EXTRA;
+  tx_buffer[UPDATE_MODE_IDX] = mode;
+  tx_buffer[UPDATE_VALUE_IDX] = new_value;
+  tx_buffer[UPDATE_VALUE_IDX + 1] = 0;
+
+  return send_and_receive(&tx_buffer[0], UPDATE_RSP_SIZE, &rx_buffer[0],
+        UPDATE_DELAY, UPDATE_EXEC_MAX - UPDATE_DELAY);
+}
+
+uint8_t SHA204::write(uint8_t *tx_buffer, uint8_t *rx_buffer,
+      uint8_t zone, uint16_t address, uint8_t *new_value, uint8_t *mac) {
+  uint8_t *p_command;
+  uint8_t count;
+
+  if (!tx_buffer || !rx_buffer || !new_value || ((zone & ~WRITE_ZONE_MASK) != 0))
+    return SHA204_BAD_PARAM;
+
+  address >>= 2;
+  if ((zone & SHA204_ZONE_MASK) == SHA204_ZONE_CONFIG) {
+    if (address > SHA204_ADDRESS_MASK_CONFIG)
+      return SHA204_BAD_PARAM;
+  }
+  else if ((zone & SHA204_ZONE_MASK) == SHA204_ZONE_OTP) {
+    if (address > SHA204_ADDRESS_MASK_OTP)
+      return SHA204_BAD_PARAM;
+  }
+  else if ((zone & SHA204_ZONE_MASK) == SHA204_ZONE_DATA) {
+    if (address > SHA204_ADDRESS_MASK)
+      return SHA204_BAD_PARAM;
+  }
+
+  p_command = &tx_buffer[SHA204_OPCODE_IDX];
+  *p_command++ = SHA204_WRITE;
+  *p_command++ = zone;
+  *p_command++ = (uint8_t) (address & SHA204_ADDRESS_MASK);
+  *p_command++ = 0;
+
+  count = (zone & SHA204_ZONE_COUNT_FLAG) ? SHA204_ZONE_ACCESS_32 : SHA204_ZONE_ACCESS_4;
+  memcpy(p_command, new_value, count);
+  p_command += count;
+
+  if (mac != NULL)
+  {
+    memcpy(p_command, mac, WRITE_MAC_SIZE);
+    p_command += WRITE_MAC_SIZE;
+  }
+
+  // Supply count.
+  tx_buffer[SHA204_COUNT_IDX] = (uint8_t) (p_command - &tx_buffer[0] + SHA204_CRC_SIZE);
+
+  return send_and_receive(&tx_buffer[0], WRITE_RSP_SIZE, &rx_buffer[0],
+        WRITE_DELAY, WRITE_EXEC_MAX - WRITE_DELAY);
+}
