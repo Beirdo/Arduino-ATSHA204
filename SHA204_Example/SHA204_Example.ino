@@ -18,13 +18,14 @@ limitations under the License.
 #include <SHA204SWI.h>
 #include <SHA204Definitions.h>
 
-const int sha204Pin = 7;
+const int sha204Pin = 10;
 
 SHA204SWI sha204swi(sha204Pin);
 
 void setup()
 {
   Serial.begin(9600);
+  while (!Serial);
   Serial.println("Sending a Wakup Command. Response should be:\r\n4 11 33 43:");
   Serial.println("Response is:");
   wakeupExample();
