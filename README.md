@@ -3,6 +3,9 @@ This repo contains a library designed to simplify working with the Atmel ATSHA20
 
 The library supports the 1-Wire or I2C chips.
 
+# Arduino Due Compatibility
+This library does not support the SWI chips with the Due.  If you are using the Due, you will need to use the I2C chips.
+
 # What is the Atmel ATSHA204?
 The Atmel ATSHA204 is an optimized authentication chip that includes a 4.5Kb EEPROM. This array can be used for storage of keys, miscellaneous read/write, read-only, password or secret data, and consumption tracking. Access to the various sections of memory can be restricted in a variety of ways and then the configuration locked to prevent changes.
 
