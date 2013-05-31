@@ -52,7 +52,6 @@ private:
 
 	int start_operation(uint8_t readWrite);
 
-	uint8_t receive_bytes(uint8_t count, uint8_t *buffer, bool sendReadStartOp);
 	uint8_t receive_bytes(uint8_t count, uint8_t *data);
 	uint8_t receive_byte(uint8_t *data);
 	uint8_t send_bytes(uint8_t count, uint8_t *buffer);

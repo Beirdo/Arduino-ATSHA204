@@ -48,11 +48,11 @@ void setup() {
   Serial.println("1 23 x x x x x x x EE");
   Serial.println("Response is:");
   serialNumberExample();
-//  Serial.println();
-//  Serial.println("Sending a MAC Challenge. Response should be:");
-//  Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
-//  Serial.println("Response is:");
-//  macChallengeExample();
+  Serial.println();
+  Serial.println("Sending a MAC Challenge. Response should be:");
+  Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
+  Serial.println("Response is:");
+  macChallengeExample();
 }
 
 void loop() {
