@@ -44,7 +44,10 @@ uint8_t SHA204I2C::receive_bytes(uint8_t count, uint8_t *data) {
 	Serial.println("receive_bytes(uint8_t count, uint8_t *data)");
 	uint8_t i;
 
-	Wire.requestFrom(deviceAddress(), count);
+	int available_bytes = Wire.requestFrom(deviceAddress(), count);
+	if (available_bytes != count) {
+		return I2C_FUNCTION_RETCODE_COMM_FAIL;
+	}
 
 	for (i = 0; i < count; i++) {
 		while (!Wire.available()); // Wait for byte that is going to be read next
@@ -57,7 +60,10 @@ uint8_t SHA204I2C::receive_bytes(uint8_t count, uint8_t *data) {
 uint8_t SHA204I2C::receive_byte(uint8_t *data) {
 	Serial.println("receive_byte");
 
-	Wire.requestFrom(deviceAddress(), (uint8_t)1);
+	int available_bytes = Wire.requestFrom(deviceAddress(), (uint8_t)1);
+	if (available_bytes != 1) {
+		return I2C_FUNCTION_RETCODE_COMM_FAIL;
+	}
 	while (!Wire.available()); // Wait for byte that is going to be read next
 	*data++ = Wire.read(); // Store read value
 
@@ -176,12 +182,31 @@ uint8_t SHA204I2C::sleep(void) {
 
 uint8_t SHA204I2C::resync(uint8_t size, uint8_t *response) {
 	Serial.println("resync(uint8_t size, uint8_t *response)");
+
+	// Try to re-synchronize without sending a Wake token
+	// (step 1 of the re-synchronization process).
 	uint8_t nine_clocks = 0xFF;
-	
 	send_bytes(1, &nine_clocks);
+	Wire.beginTransmission(deviceAddress());
+	Wire.endTransmission();
 
 	// Try to send a Reset IO command if re-sync succeeded.
-	return reset_io();
+	int ret_code = reset_io();
+
+	if (ret_code == SHA204_SUCCESS) {
+		return ret_code;
+	}
+
+	// We lost communication. Send a Wake pulse and try
+	// to receive a response (steps 2 and 3 of the
+	// re-synchronization process).
+	sleep();
+	ret_code = wakeup(response);
+
+	// Translate a return value of success into one
+	// that indicates that the device had to be woken up
+	// and might have lost its TempKey.
+	return (ret_code == SHA204_SUCCESS ? SHA204_RESYNC_WITH_WAKEUP : ret_code);
 }
 
 uint8_t SHA204I2C::reset_io() {

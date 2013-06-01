@@ -65,6 +65,7 @@ uint8_t SHA204SWI::sleep() {
 }
 
 uint8_t SHA204SWI::resync(uint8_t size, uint8_t *response) {
+  Serial.println("resync");
   // Try to re-synchronize without sending a Wake token
   // (step 1 of the re-synchronization process).
   delay(SHA204_SYNC_TIMEOUT);

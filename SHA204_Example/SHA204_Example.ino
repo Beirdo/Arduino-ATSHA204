@@ -19,7 +19,7 @@ limitations under the License.
 
 // Uncomment this block for SWI testing
 //#include <SHA204SWI.h>
-//const int sha204Pin = 10;
+//const int sha204Pin = 7;
 //SHA204SWI sha204dev(sha204Pin);
 
 // Uncomment this block for I2C testing
@@ -37,22 +37,33 @@ void setup() {
   Wire.begin();
   sha204dev.init(); // Be sure to wake up device right as I2C goes up otherwise you'll have NACK issues
   #endif
-
-  Serial.println("Testing Chip");
-  Serial.println();
-  Serial.println("Sending a Wakup Command. Response should be:\r\n4 11 33 43:");
-  Serial.println("Response is:");
+Serial.println(millis());
+for (int i=0; i<12; i++) {
+  Serial.println("Sleep!");
+  //sha204dev.sleep();
+  delay(3000);
+  Serial.println("Wake!");
   wakeupExample();
+  Serial.println("----------");
+  //Serial.println("Testing Chip");
+  //Serial.println();
+  //Serial.println("Sending a Wakup Command. Response should be:\r\n4 11 33 43:");
+  //Serial.println("Response is:");
+  //wakeupExample();
+  //delay(500);
   Serial.println();
   Serial.println("Asking the SHA204's serial number. Response should be:");
   Serial.println("1 23 x x x x x x x EE");
   Serial.println("Response is:");
   serialNumberExample();
-  Serial.println();
-  Serial.println("Sending a MAC Challenge. Response should be:");
-  Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
-  Serial.println("Response is:");
-  macChallengeExample();
+  //Serial.println();
+  //Serial.println("Sending a MAC Challenge. Response should be:");
+  //Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
+  //Serial.println("Response is:");
+  //macChallengeExample();
+}
+Serial.println(millis());
+Serial.println("Done!");
 }
 
 void loop() {
@@ -62,7 +73,7 @@ byte wakeupExample() {
   uint8_t response[SHA204_RSP_SIZE_MIN];
   byte returnValue;
   
-  returnValue = sha204dev.wakeup(&response[0]);
+  returnValue = sha204dev.resync(4, &response[0]);
   for (int i=0; i<SHA204_RSP_SIZE_MIN; i++) {
     Serial.print(response[i], HEX);
     Serial.print(" ");
