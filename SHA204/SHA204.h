@@ -35,6 +35,7 @@ private:
 public:
 	virtual uint8_t sleep() = 0;
 	uint8_t wakeup(uint8_t *response);
+	virtual uint8_t idle() = 0;
 
 	uint8_t execute(uint8_t op_code, uint8_t param1, uint16_t param2,
 			uint8_t datalen1, uint8_t *data1, uint8_t datalen2, uint8_t *data2, uint8_t datalen3, uint8_t *data3,

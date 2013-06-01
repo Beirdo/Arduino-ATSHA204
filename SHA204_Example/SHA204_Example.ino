@@ -39,28 +39,32 @@ void setup() {
   #endif
 Serial.println(millis());
 for (int i=0; i<12; i++) {
-  Serial.println("Sleep!");
+  //Serial.println("Sleep!");
   //sha204dev.sleep();
-  delay(3000);
-  Serial.println("Wake!");
-  wakeupExample();
-  Serial.println("----------");
-  //Serial.println("Testing Chip");
-  //Serial.println();
-  //Serial.println("Sending a Wakup Command. Response should be:\r\n4 11 33 43:");
-  //Serial.println("Response is:");
+  //delay(3000);
+  //Serial.println("Wake!");
   //wakeupExample();
+  //Serial.println("----------");
+  Serial.println("Testing Chip");
+  Serial.println();
+  Serial.println("Sending a Wakup Command. Response should be:\r\n4 11 33 43:");
+  Serial.println("Response is:");
+  wakeupExample();
   //delay(500);
   Serial.println();
   Serial.println("Asking the SHA204's serial number. Response should be:");
   Serial.println("1 23 x x x x x x x EE");
   Serial.println("Response is:");
   serialNumberExample();
-  //Serial.println();
-  //Serial.println("Sending a MAC Challenge. Response should be:");
-  //Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
-  //Serial.println("Response is:");
-  //macChallengeExample();
+  Serial.println("Setting chip idle prior to generating MAC challenge so we know it will complete");
+  sha204dev.idle();
+  Serial.println();
+  Serial.println("Waking uip chip prior to sending MAC challenge (this should have a 100% reset watchdog timer to ensure completion)");
+  wakeupExample();
+  Serial.println("Sending a MAC Challenge. Response should be:");
+  Serial.println("23 6 67 0 4F 28 4D 6E 98 62 4 F4 60 A3 E8 75 8A 59 85 A6 79 96 C4 8A 88 46 43 4E B3 DB 58 A4 FB E5 73");
+  Serial.println("Response is:");
+  macChallengeExample();
 }
 Serial.println(millis());
 Serial.println("Done!");

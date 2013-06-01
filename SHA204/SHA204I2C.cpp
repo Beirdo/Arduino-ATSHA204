@@ -180,6 +180,10 @@ uint8_t SHA204I2C::sleep(void) {
 	return send(SHA204_I2C_PACKET_FUNCTION_SLEEP, 0, NULL);
 }
 
+uint8_t SHA204I2C::idle(void) {
+	return send(SHA204_I2C_PACKET_FUNCTION_IDLE, 0, NULL);
+}
+
 uint8_t SHA204I2C::resync(uint8_t size, uint8_t *response) {
 	Serial.println("resync(uint8_t size, uint8_t *response)");
 
