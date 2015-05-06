@@ -1,16 +1,51 @@
-# ATSHA204 Breakout Repository
-Here you'll find the hardware design files for the [SparkFun ATSHA204 Breakout](https://www.sparkfun.com/products/11551). You'll also find example Arduino code, including a library for this powerful little chip.
+SparkFun <PRODUCT NAME> Arduino Library
+========================================
 
-## What's here?
-In the *hardware* directory, you'll find the Eagle design files - board and schematic - as well as a pdf version of the schematic.
+![SparkFun Part Name](URL for picture of part)
 
-In the *sha204_library* directory, you'll find the **ATSHA204 Arduino Library** as well as example code to demo what it can do. 
+[*SparkFun Part Name (SKU)*](URL for product on Sparkfun.com)
 
-## What is the Atmel ATSHA204?
-The Atmel ATSHA204 is an optimized authentication chip that includes a 4.5Kb EEPROM. This array can be used for storage of keys, miscellaneous read/write, read-only, password or secret data, and consumption tracking. Access to the various sections of memory can be restricted in a variety of ways and then the configuration locked to prevent changes.
+<Basic description of the library.>
 
-Each ATSHA204 ships with a guaranteed unique 72-bit serial number. Using the cryptographic protocols supported by the chip, a host system or remote server can prove that the serial number is both authentic and not a copy. The ATSHA204 can generate high-quality random numbers and employ them for any purpose, including usage as part of the crypto protocols of this chip.
+Repository Contents
+-------------------
 
-Here's a link to the [datasheet](http://www.atmel.com/Images/doc8740.pdf).
+* **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE. 
+* **/extras** - Additional documentation for the user. These files are ignored by the IDE. 
+* **/src** - Source files for the library (.cpp, .h).
+* **keywords.txt** - Keywords from this library that will be highlighted in the Arduino IDE. 
+* **library.properties** - General library properties for the Arduino package manager. 
 
-- Jim Lindblom @ SparkFun Electronics
+Documentation
+--------------
+
+* **[Installing an Arduino Library Guide](https://learn.sparkfun.com/tutorials/installing-an-arduino-library)** - Basic information on how to install an Arduino library.
+* **[Product Repository](GitHub Product URL)** - Main repository (including hardware files) for the <PRODUCT NAME>.
+* **[Hookup Guide](Learn.SparkFun URL)** - Basic hookup guide for the <PRODUCT NAME>.
+
+Products that use this Library 
+---------------------------------
+
+* [Part SKU](SparkFun part URL)- Basic part and short description here
+* [Part SKU](SparkFun part URL)- Basic part and short description here
+
+Version History
+---------------
+
+* [vExxFxxZxxHxxLxxSxx](URL for tag specific to this version) - Description 
+* [vEyyFyyZyyHyyLyySyy](URL for tag specific to this version) - Description
+
+License Information
+-------------------
+
+This product is _**open source**_! 
+
+The **code** is beerware; if you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round!
+
+Please use, reuse, and modify these files as you see fit. Please maintain attribution to SparkFun Electronics and release anything derivative under the same license.
+
+Distributed as-is; no warranty is given.
+
+- Your friends at SparkFun.
+
+_<COLLABORATION CREDIT>_
