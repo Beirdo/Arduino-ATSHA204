@@ -1,36 +1,29 @@
-SparkFun ATSHA204 Arduino Library
-========================================
+# Arduino ATSHA204 Library
+This repo contains a library designed to simplify working with the Atmel ATSHA204 chips.
 
-![SparkFun ATSHA204 Breakout](https://cdn.sparkfun.com//assets/parts/7/5/0/3/11551-01a.jpg)
+The library supports the 1-Wire or I2C chips.
 
-[*SparkFun ATSHA204 Breakout (BOB-11551)*](https://www.sparkfun.com/products/retired/11551)
+# Arduino Due Compatibility
+This library does not support the SWI chips with the Due.  If you are using the Due, you will need to use the I2C chips.
 
-This code shows how to wake up and verify that an SHA204 is connected and operational. 
-And how to obtain an SHA204's unique serial number, and send it a MAC challenge.
-   
-Repository Contents
--------------------
+# What is the Atmel ATSHA204?
+The Atmel ATSHA204 is an optimized authentication chip that includes a 4.5Kb EEPROM. This array can be used for storage of keys, miscellaneous read/write, read-only, password or secret data, and consumption tracking. Access to the various sections of memory can be restricted in a variety of ways and then the configuration locked to prevent changes.
+
+Each ATSHA204 ships with a guaranteed unique 72-bit serial number. Using the cryptographic protocols supported by the chip, a host system or remote server can prove that the serial number is both authentic and not a copy. The ATSHA204 can generate high-quality random numbers and employ them for any purpose, including usage as part of the crypto protocols of this chip.
+
+# Licensing
+All documentation and graphical items contained on this website and within the sources unless otherwise noted is licensed under the 
+[Creative Commons Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)](http://creativecommons.org/licenses/by-sa/3.0/deed.en_US) license.
+
+Atmel datasheets are not open-source, and are here as a reference only.  They cam be obtained at:  http://www.atmel.com/devices/atsha204.aspx
+
+The original SparkFun source code that this library is based on is open-source, under the [Beerware License](https://fedoraproject.org/wiki/Licensing/Beerware).
+
+Subsequent changes to the source code is licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0.html) unless otherwise specified.
+
+# Repository Contents
 
 * **/examples** - Example sketches for the library (.ino). Run these from the Arduino IDE. 
 * **/src** - Source files for the library (.cpp, .h).
 * **library.properties** - General library properties for the Arduino package manager. 
 
-Documentation
---------------
-
-* **[Installing an Arduino Library Guide](https://learn.sparkfun.com/tutorials/installing-an-arduino-library)** - Basic information on how to install an Arduino library.
-
-License Information
--------------------
-
-This product is _**open source**_! 
-
-The **code** is beerware; if you see me (or any other SparkFun employee) at the local, and you've found our code helpful, please buy us a round!
-
-Please use, reuse, and modify these files as you see fit. Please maintain attribution to SparkFun Electronics and release anything derivative under the same license.
-
-Distributed as-is; no warranty is given.
-
-- Your friends at SparkFun.
-
-Subsequent changes are licensed under the [Apache 2.0 License](https://www.apache.org/licenses/LICENSE-2.0).
