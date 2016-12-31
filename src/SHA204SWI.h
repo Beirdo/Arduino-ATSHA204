@@ -50,7 +50,11 @@ private:
 	const static uint16_t SHA204_RESPONSE_TIMEOUT_VALUE = ((uint16_t) SWI_RECEIVE_TIME_OUT + SWI_US_PER_BYTE);  //! SWI response timeout is the sum of receive timeout and the time it takes to send the TX flag.
 
 	uint8_t device_pin;
+#ifndef __arm__
 	volatile uint8_t *device_port_DDR, *device_port_OUT, *device_port_IN;
+#else
+	volatile uint32_t *device_port_DDR, *device_port_OUT, *device_port_IN;
+#endif
 	
 	uint16_t SHA204_RESPONSE_TIMEOUT();
 	void set_signal_pin(uint8_t is_high);

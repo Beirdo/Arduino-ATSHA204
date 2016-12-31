@@ -30,7 +30,11 @@ uint16_t SHA204SWI::SHA204_RESPONSE_TIMEOUT() {
 // As well as the bit value for each of those registers
 SHA204SWI::SHA204SWI(uint8_t pin) {
 	device_pin = digitalPinToBitMask(pin);	// Find the bit value of the pin
+#ifndef __arm__
 	uint8_t port = digitalPinToPort(pin);	// temoporarily used to get the next three registers
+#else
+	PortGroup *port = digitalPinToPort(pin);	// temoporarily used to get the next three registers
+#endif
 	
 	// Point to data direction register port of pin
 	device_port_DDR = portModeRegister(port);
